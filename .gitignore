@@ -1,0 +1,10 @@
+# Never commit videos, credentials, or machine-specific files
+*.mp4
+*.webm
+*.mov
+*.avi
+*.mkv
+.env
+.env.*
+.DS_Store
+Thumbs.db

@@ -1,23 +1,24 @@
-# Verification — October 8, 2026
+# Verification — October 14, 2026
 
-Prepared from the existing FlashGuard prototype source, commit `b36bf4713ec4edd21d155a4e0ef75cb61eed4f4a`.
+The October 8 standalone prototype was enhanced with the six requested changes: repeated-transition detection, event grouping, preview brightness/speed, progress and summary feedback, home/results views, and click/keyboard pause/resume.
 
-Changes for this standalone distribution:
-- Added complete launch, troubleshooting, limitations, and GitHub submission instructions.
-- Added a same-position seek guard and clamped seeks to nonnegative times.
-- Added a completion notice about reduced sampling for long videos.
-- Excluded hosting metadata and Git credentials from this package.
+## Passed
 
-Passed checks:
-- JavaScript syntax checked with Node.js 24.19.0 (`node --check`).
-- All referenced DOM IDs exist, with no duplicate IDs.
-- No external script or stylesheet dependencies.
-- No fetch or XMLHttpRequest network calls in the application.
-- ZIP contains the application and documentation, without video files or credentials.
+- JavaScript syntax check with Node.js.
+- DOM IDs are unique and script references resolve.
+- Synthetic detector tests reject isolated changes and repeated changes in only one direction.
+- Synthetic tests detect alternating brightness and red transitions.
+- Nearby candidate intervals merge; distant ones remain separate.
+- Mocked controls verify click pause/resume/replay, paused indicator, interval endpoint stop, brightness, speed, and view navigation.
+- Application remains self-contained with no external script or stylesheet dependencies.
 
-Not performed:
-- End-to-end browser execution and video decoding on this environment.
-- Independent run on a second physical computer.
-- Accuracy measurement against annotated videos or clinical/standards validation.
+Run `node test.cjs` to reproduce the automated checks. Test stubs simulate DOM and media state; they do not decode videos.
 
-Before submitting, download the public repository on another computer and follow only README.md. Confirm a short supported video produces a completed report; check sequential selection of a second video, unsupported-file handling, and explicit-consent preview behavior. Use a non-photosensitive reviewer for any flashing playback tests.
+## Still required
+
+- End-to-end browser testing with actual supported video files and on a second computer.
+- Retest the original standing-up video and compare its report against the prior version.
+- Compare annotated flashing/nonflashing clips to measure false positives and missed detections. No accuracy percentage or confirmed correction of the user's clip is claimed.
+- Verify browser media behavior for cancel/reselect, errors, long-video progress, warning consent, and segment endpoints.
+
+The detector uses reduced frames and capped sampling; longer videos can miss short events. Requiring repeated alternating transitions may reduce false alarms and may increase missed detections. Dimming and slowing previews are comfort options, not validated protection. A clear report does not establish safety.

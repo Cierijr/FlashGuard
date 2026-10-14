@@ -16,3 +16,23 @@ elements.player.currentTime=2;elements.player.ontimeupdate();assert.equal(elemen
 elements.brightness.value='30';elements.brightness.oninput();assert.equal(elements.player.style.filter,'brightness(30%)');elements.speed.value='.5';elements.speed.onchange();assert.equal(elements.player.playbackRate,.5);
 evaluate('showResults()');assert(elements.homeView.classList.contains('hidden'));evaluate('showHome()');assert(elements.resultsView.classList.contains('hidden'));assert.equal(elements.player.paused,true);
 assert(!/<script[^>]+src=|<link[^>]+href=/.test(html));console.log('PASS: DOM integrity; movement/monotonic rejection; brightness/red repetitions; nearby/separate grouping; click pause/resume/replay; endpoint stop; dimming/speed; home/results navigation; embedded assets.');
+// Exercise the actual entry points, not just individual playback controls.
+(async()=>{
+  assert.doesNotThrow(()=>evaluate('reset()'),'choosing a file must reset without undefined progress variables');
+  await evaluate("load({name:'notes.txt',type:'text/plain'})");
+  assert.equal(elements.status.textContent,'Choose a video file.');
+  context.URL.createObjectURL=()=> 'blob:test-video';
+  elements.analyzer.duration=2;
+  evaluate("waitForMetadata=async()=>{};analyze=async(duration,id)=>{globalThis.analysisStarted={duration,id};stopWorking()}");
+  await evaluate("load({name:'clip.mp4',type:'video/mp4',size:1024})");
+  assert.equal(context.analysisStarted.duration,2,'valid video reaches analysis');
+  assert.equal(elements.analyzer.src,'blob:test-video');
+  assert.equal(elements.player.src,'blob:test-video');
+  assert.equal(elements.player.paused,true,'choosing video must not autoplay preview');
+  elements.file.files=[{name:'second.webm',type:'video/webm',size:2048}];
+  elements.file.onchange();await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(context.analysisStarted.id,evaluate('run'),'file selection starts current analysis');
+  elements.cancel.onclick();assert.equal(elements.status.textContent,'Analysis cancelled. Choose a video to start again.');
+  assert.equal(evaluate('busy'),false);
+  console.log('PASS: reset, invalid file, valid-video loading, file-change handler, no preview autoplay, and cancellation.');
+})().catch(e=>{console.error(e);process.exitCode=1});

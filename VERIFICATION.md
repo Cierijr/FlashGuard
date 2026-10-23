@@ -1,23 +1,18 @@
-# Verification — October 23, 2026 (section-marking revision)
+# Verification — October 23, 2026 (flagged-section navigation)
 
-Changed manual timestamp notes to per-detection review checkboxes and optional review notes. Changed skip-all playback to skip only detections explicitly marked by the user. Both choices are exported independently for every interval.
+Next flagged section skips sections marked for skipping and wraps to the first unmarked section after the last. Full-video playback controls and implementation have been removed. Playback previews only the selected flagged interval, behind the existing confirmation warning.
 
 ## Automated checks passed
 
-- JavaScript syntax and DOM-reference checks; standalone embedded application assets.
-- Section review checkbox and optional note state; unchecked review marks are absent from exported review notes.
-- Separate skip checkbox, no skip selection by default, and pausing when skip marks change.
-- Marked intervals skip; unmarked flagged intervals play in full-video marked-skip mode.
-- Filtering does not affect skip selections or exported detections.
-- Both TXT and JSON download actions; export content includes each section's review mark, note, and skip mark.
-- Existing preview consent, next-section navigation, timestamp finding, and reset behavior.
-- Synthetic detector cases and mocked pause/resume, dimming, speed, segment endpoints, and adjacent/end skip boundaries.
-- File loading, invalid input, cancellation, and the actual analysis function over simulated constant decoded frames.
+Run `node test.cjs`.
 
-Run `node test.cjs`. These checks use mocked DOM/media and simulated frames. Real browser downloads, decoding, and seek timing are not verified here.
+- From section 1, skips marked sections 2 and 3 to select section 4.
+- Wraps after the last section, including when leading sections are marked.
+- Handles a single unmarked section, every section marked, and an empty report.
+- Re-enables navigation when a section is unchecked; respects marks independently of list filters.
+- Selection pauses playback and presents the confirmation warning; previews stop at interval end.
+- No full-video mode controls or full-video skip implementation remain.
+- Review marks, notes, skip marks, TXT/JSON downloads, timestamp finding, reset, detector synthetic cases, pause/resume, brightness, and speed.
+- Actual file-selection entry points, cancellation, and analysis over simulated constant frames.
 
-## Remaining validation
-
-Download the repository and test in a real browser, including on a separate computer. Analyze a video with multiple detections, mark different sections for review and skipping, save both formats, and verify the choices and playback. Retest the standing-up clip and compare detections against annotated videos before claiming accuracy improvements.
-
-Detection is sampled and heuristic. Unmarked flagged sections play in marked-skip mode. Browser seeking is not frame-exact. No detection result, comfort control, or skipping mode establishes safety or zero flash exposure.
+These checks use mocked DOM/media and simulated frames. Real browser decoding, downloads, and seek timing remain unverified. Test the downloaded version in a browser and on a separate computer, including the original standing-up clip before claiming improved detection accuracy. Sampled heuristic analysis and comfort controls do not establish video safety.

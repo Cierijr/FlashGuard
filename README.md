@@ -2,7 +2,7 @@
 
 IST440W video accessibility prototype — Julianna Cieri.
 
-FlashGuard analyzes a video file on your computer, marks possible rapid brightness or red transitions, and displays timestamps and simple visual cues from before each flagged interval. Selecting an interval opens a warning; playback requires an explicit click. An optional playback mode watches the video while automatically jumping past only the detected intervals you mark for skipping.
+FlashGuard analyzes a video file on your computer, marks possible rapid brightness or red transitions, and displays timestamps and simple visual cues from before each flagged interval. Selecting an interval opens a warning; playback requires an explicit click. Playback is limited to individual flagged intervals. Next-section navigation skips marked intervals and wraps around.
 
 ## Run on another computer
 
@@ -63,7 +63,7 @@ With Node.js installed, run `node test.cjs` from the repository folder. It check
 Each flagged report section has two independent checkboxes:
 
 - **Mark for review:** marks that detected interval for later review and reveals an optional note field, such as “Review this section”. It does not change playback.
-- **Skip during playback:** adds that detected interval to the marked-skip playback list. It does not mark it for review. No intervals are checked for skipping by default.
+- **Skip in next-section navigation:** excludes that detected interval from the Next flagged section button. It does not mark it for review. No intervals are checked for skipping by default.
 
 You can use either choice or both. Click the section's preview button to inspect it behind the existing playback warning. Marking or entering a note does not start playback. Changing a skip checkbox pauses playback so you can finish adjusting the list.
 
@@ -73,17 +73,17 @@ Choose `.txt` or `.json` and press **Save report to computer**. Both downloads c
 
 Exports include the local filename, not the video itself. Filters never omit detections or marks from the saved report. Save before choosing a new video or closing/reloading this page: no analysis history or permanent in-app storage is kept.
 
-### Play with marked skips
+### Navigate flagged sections
 
-Choose **Skip sections marked for skipping** or press **Play with marked skips**, then confirm playback. The full video plays, skipping only sections checked **Skip during playback**, even if a list filter hides them. **Unmarked flagged sections will play.** Playback starts at the beginning or after a marked leading interval. An 80 ms boundary margin and an opaque cover during seeking help handle boundaries. Playback stops if a marked interval extends through the end.
+The **Next flagged section** button under the player selects the next section that is not marked for skipping. For example, from section 1, if sections 2 and 3 are marked, it selects section 4. After the last section it wraps to the first unmarked section. If all sections are marked, the button is disabled; unchecking one enables it again. With only one unmarked section, navigation returns to that section.
 
-Detection and browser seeking are imperfect and not frame-exact. This mode does not guarantee avoidance of flashing or safe playback. Preview mode still plays an individual flagged interval only after confirmation.
+Selection shows the existing warning and does not autoplay. A marked section can still be deliberately opened from its report card. There is no full-video playback option; each preview stops at the selected interval's end. Filters do not change next-section navigation or exports.
 
 ### Find and navigate
 
 - **Find timestamp:** enter seconds, `M:SS`, or `H:MM:SS` to select the containing flagged interval or next matching interval. It pauses playback and requires preview confirmation.
 - **Detected pattern:** filter the list by brightness changes or red transitions, where detected. Merged detections retain both labels when available. Filters do not change marks, exports, or skip choices.
-- **Next flagged section:** the button beneath the player selects the next chronological detection and presents its warning, without autoplay. It ignores filters and is disabled after the last detection. It switches from marked-skip mode to flagged preview when used.
+- **Next flagged section:** the button beneath the player selects the next unmarked detection and wraps around, presenting its warning without autoplay. It ignores list filters and is disabled when no unmarked detection exists.
 
 There is no separate manual timestamp panel; review choices and notes belong to detected sections.
 

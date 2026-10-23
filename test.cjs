@@ -39,6 +39,13 @@ evaluate('selected=null');elements.nextFlag.onclick();assert.equal(evaluate('sel
 assert.equal(evaluate('nextFlagIndex(0,[],null)'),-1);
 assert(!html.includes('id="playbackMode"'));assert(!html.includes('id="startSkip"'));assert(!js.includes('nextUnflaggedTime'));
 evaluate('select(3);player.currentTime=8;enforceBoundary()');assert.equal(elements.player.paused,true);assert.equal(elements.player.currentTime,8);
+// Browser seeks can report rounded media times and complete asynchronously.
+evaluate('select(0);player.paused=false;player.currentTime=segments[0].start-.001;enforceBoundary()');assert.equal(elements.player.paused,false,'sub-frame seek rounding must not pause preview');
+evaluate('player.seeking=true;player.currentTime=0;enforceBoundary()');assert.equal(elements.player.paused,false,'pending seek must not interrupt playback');
+evaluate('player.seeking=false;player.currentTime=segments[0].start;player.emit("seeked")');assert.equal(elements.player.paused,false);
+evaluate('player.currentTime=clipEnd;player.paused=false');let endpointWrites=0;let mediaTime=elements.player.currentTime;Object.defineProperty(elements.player,'currentTime',{configurable:true,get(){return mediaTime},set(v){endpointWrites++;mediaTime=v;this.emit('seeked')}});evaluate('enforceBoundary()');assert.equal(elements.player.paused,true);assert.equal(endpointWrites,0,'endpoint stop must not seek recursively');
+Object.defineProperty(elements.player,'currentTime',{configurable:true,writable:true,value:mediaTime});
+console.log('PASS: seek rounding, in-flight seek, seek completion, and non-recursive endpoint stop.');
 console.log('PASS: skip-aware next navigation, wraparound, all/one/zero unmarked sections, no autoplay, full-video controls removed, interval boundary stop.');
 evaluate('reset()');assert.equal(evaluate('reportData'),null);assert.equal(elements.saveReport.disabled,true);assert.equal(elements.nextFlag.disabled,true);
 assert(!html.includes('id="noteTime"'));assert(!html.includes('Manual review notes'));console.log('PASS: per-section review marks, notes, skip marks, filter independence, consent, navigation, both exports, and reset.');

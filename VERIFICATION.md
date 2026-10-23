@@ -1,24 +1,31 @@
-# Verification — October 14, 2026
+# Verification — October 23, 2026
 
-The October 8 standalone prototype was enhanced with the six requested changes: repeated-transition detection, event grouping, preview brightness/speed, progress and summary feedback, home/results views, and click/keyboard pause/resume.
+Updated the existing FlashGuard prototype with local report downloads, optional automatic-skip playback, manual timestamp notes, timestamp search/pattern filters, and the Next flagged section button. The standalone launch process is unchanged.
 
-## Passed
+## Automated checks passed
 
-- JavaScript syntax check with Node.js.
-- DOM IDs are unique and script references resolve.
-- Synthetic detector tests reject isolated changes and repeated changes in only one direction.
-- Synthetic tests detect alternating brightness and red transitions.
-- Nearby candidate intervals merge; distant ones remain separate.
-- Mocked controls verify click pause/resume/replay, paused indicator, interval endpoint stop, brightness, speed, and view navigation.
-- Application remains self-contained with no external script or stylesheet dependencies.
+Run `node test.cjs` from this folder; Node.js is only needed for developer checks, not for using FlashGuard.
 
-Run `node test.cjs` to reproduce the automated checks. Test stubs simulate DOM and media state; they do not decode videos.
+- JavaScript syntax; unique DOM IDs; referenced controls exist; scripts/styles remain embedded.
+- Existing synthetic detector tests: isolated-motion and monotonic-change rejection, brightness/red repetition detection, nearby-event grouping.
+- File selection, reset, invalid inputs, cancellation, no preview autoplay, and successful completion of the actual analysis loop using simulated constant decoded frames.
+- Timestamp parsing and out-of-range input handling.
+- Next detection navigation, disabled state at the last detection, selection at time zero, and retained preview consent.
+- Pattern list filtering and timestamp finding without starting playback.
+- Manual note creation and safe text rendering; notes clear when a new video is selected.
+- Both report download actions; complete export data includes flags hidden by list filters, precise timestamps, settings, and notes.
+- Skip interval boundaries, adjacent intervals, and a flagged interval extending through the end of the video.
+- Full-report skipping while a pattern filter is active; covering seeks; switching between automatic skips and flagged preview.
+- Existing dimming, speed, pause/resume, and segment endpoint behavior.
 
-## Still required
+The tests use mocked DOM/media and simulated decoded frames. They do not verify real browser downloads, codecs, seek timing, or real video decoding.
 
-- End-to-end browser testing with actual supported video files and on a second computer.
-- Retest the original standing-up video and compare its report against the prior version.
-- Compare annotated flashing/nonflashing clips to measure false positives and missed detections. No accuracy percentage or confirmed correction of the user's clip is claimed.
-- Verify browser media behavior for cancel/reselect, errors, long-video progress, warning consent, and segment endpoints.
+## Remaining validation
 
-The detector uses reduced frames and capped sampling; longer videos can miss short events. Requiring repeated alternating transitions may reduce false alarms and may increase missed detections. Dimming and slowing previews are comfort options, not validated protection. A clear report does not establish safety.
+- Run the downloaded repository on another computer using only README.md.
+- Test both download formats in a real browser, inspect their contents, and test a file with multiple flagged intervals.
+- Test automatic skips in actual supported videos, including leading/trailing and adjacent detections. Browser seeking is not frame-exact; no claim of zero flash exposure is made.
+- Retest the standing-up clip against the old detector and evaluate false alarms/missed events against annotated clips.
+- Confirm manual notes, filters, navigation, cancellation, and reselecting files in a real browser.
+
+Detection is sampled and heuristic. Comfort controls, automatic skipping, and a clear report do not establish safety. Manual notes are annotations and do not become detector warnings. No accuracy percentage or clinical/standards validation is claimed.

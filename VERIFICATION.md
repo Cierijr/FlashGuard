@@ -1,31 +1,23 @@
-# Verification — October 23, 2026
+# Verification — October 23, 2026 (section-marking revision)
 
-Updated the existing FlashGuard prototype with local report downloads, optional automatic-skip playback, manual timestamp notes, timestamp search/pattern filters, and the Next flagged section button. The standalone launch process is unchanged.
+Changed manual timestamp notes to per-detection review checkboxes and optional review notes. Changed skip-all playback to skip only detections explicitly marked by the user. Both choices are exported independently for every interval.
 
 ## Automated checks passed
 
-Run `node test.cjs` from this folder; Node.js is only needed for developer checks, not for using FlashGuard.
+- JavaScript syntax and DOM-reference checks; standalone embedded application assets.
+- Section review checkbox and optional note state; unchecked review marks are absent from exported review notes.
+- Separate skip checkbox, no skip selection by default, and pausing when skip marks change.
+- Marked intervals skip; unmarked flagged intervals play in full-video marked-skip mode.
+- Filtering does not affect skip selections or exported detections.
+- Both TXT and JSON download actions; export content includes each section's review mark, note, and skip mark.
+- Existing preview consent, next-section navigation, timestamp finding, and reset behavior.
+- Synthetic detector cases and mocked pause/resume, dimming, speed, segment endpoints, and adjacent/end skip boundaries.
+- File loading, invalid input, cancellation, and the actual analysis function over simulated constant decoded frames.
 
-- JavaScript syntax; unique DOM IDs; referenced controls exist; scripts/styles remain embedded.
-- Existing synthetic detector tests: isolated-motion and monotonic-change rejection, brightness/red repetition detection, nearby-event grouping.
-- File selection, reset, invalid inputs, cancellation, no preview autoplay, and successful completion of the actual analysis loop using simulated constant decoded frames.
-- Timestamp parsing and out-of-range input handling.
-- Next detection navigation, disabled state at the last detection, selection at time zero, and retained preview consent.
-- Pattern list filtering and timestamp finding without starting playback.
-- Manual note creation and safe text rendering; notes clear when a new video is selected.
-- Both report download actions; complete export data includes flags hidden by list filters, precise timestamps, settings, and notes.
-- Skip interval boundaries, adjacent intervals, and a flagged interval extending through the end of the video.
-- Full-report skipping while a pattern filter is active; covering seeks; switching between automatic skips and flagged preview.
-- Existing dimming, speed, pause/resume, and segment endpoint behavior.
-
-The tests use mocked DOM/media and simulated decoded frames. They do not verify real browser downloads, codecs, seek timing, or real video decoding.
+Run `node test.cjs`. These checks use mocked DOM/media and simulated frames. Real browser downloads, decoding, and seek timing are not verified here.
 
 ## Remaining validation
 
-- Run the downloaded repository on another computer using only README.md.
-- Test both download formats in a real browser, inspect their contents, and test a file with multiple flagged intervals.
-- Test automatic skips in actual supported videos, including leading/trailing and adjacent detections. Browser seeking is not frame-exact; no claim of zero flash exposure is made.
-- Retest the standing-up clip against the old detector and evaluate false alarms/missed events against annotated clips.
-- Confirm manual notes, filters, navigation, cancellation, and reselecting files in a real browser.
+Download the repository and test in a real browser, including on a separate computer. Analyze a video with multiple detections, mark different sections for review and skipping, save both formats, and verify the choices and playback. Retest the standing-up clip and compare detections against annotated videos before claiming accuracy improvements.
 
-Detection is sampled and heuristic. Comfort controls, automatic skipping, and a clear report do not establish safety. Manual notes are annotations and do not become detector warnings. No accuracy percentage or clinical/standards validation is claimed.
+Detection is sampled and heuristic. Unmarked flagged sections play in marked-skip mode. Browser seeking is not frame-exact. No detection result, comfort control, or skipping mode establishes safety or zero flash exposure.

@@ -2,7 +2,7 @@
 
 IST440W video accessibility prototype — Julianna Cieri.
 
-FlashGuard analyzes a video file on your computer, marks possible rapid brightness or red transitions, and displays timestamps and simple visual cues from before each flagged interval. Selecting an interval opens a warning; playback requires an explicit click. An optional playback mode watches the video while automatically jumping past detected intervals.
+FlashGuard analyzes a video file on your computer, marks possible rapid brightness or red transitions, and displays timestamps and simple visual cues from before each flagged interval. Selecting an interval opens a warning; playback requires an explicit click. An optional playback mode watches the video while automatically jumping past only the detected intervals you mark for skipping.
 
 ## Run on another computer
 
@@ -24,7 +24,7 @@ If your browser prevents local-file video access, install Python 3 and run `pyth
 - Each sampled frame is reduced to 32 × 18 pixels. The heuristic counts large brightness/red transitions and groups repeated transitions into intervals. It now requires at least six alternating transitions of the same type within one second (approximately three complete cycles) before creating a candidate interval. This is a heuristic, not a standards-based flash measurement. Requiring repetition reduces isolated-motion false alarms but can also miss real events.
 - This is not a validated WCAG compliance test or a medical safety assessment. False alarms and missed events are possible. No detections does not mean safe to watch.
 - Pre-scene cues describe estimated brightness and color from one frame. They do not identify people, objects, or actions.
-- No streaming links, protected video extraction, video downloads, server uploads, or stored analysis history. Reports can be explicitly downloaded to your computer. Notes remain only for the current video until exported.
+- No streaming links, protected video extraction, video downloads, server uploads, or stored analysis history. Reports can be explicitly downloaded to your computer. Section marks and review notes remain only for the current video until exported.
 - Keep the browser tab active during analysis. Processing speed depends on video decoding, duration, and the computer.
 
 ## Troubleshooting
@@ -58,12 +58,33 @@ Edit `index.html` with a text editor and reload the browser. There are no depend
 
 With Node.js installed, run `node test.cjs` from the repository folder. It checks synthetic detector cases and mocked interface behavior. Node.js is not needed to use FlashGuard. These tests do not replace browser/video decoding tests or independent-computer testing.
 
-## October 23 features
+## October 23 section review features
 
-1. **Save report to computer:** on the results view, choose a readable `.txt` or structured `.json` report and press **Save report to computer**. Both include all flagged intervals with precise timestamps, detected pattern labels, pre-scene cues, analysis settings and actual sampling spacing, current playback settings, and manual notes. List filters do not remove data from the export. The report includes the local video filename, but does not include the video itself. Browser download settings determine where it is saved.
-2. **Automatic skipping:** select **Automatically skip flagged intervals** or press **Start with automatic skips**, then confirm playback. The player starts at the beginning (or after a leading flagged interval) and jumps past detections using the complete report. It adds an 80 ms boundary margin, covers the video during seeks, and stops if the remaining video is flagged. No autoplay occurs when changing modes. This uses browser time updates/seeking, which are not frame-exact; missed detections and brief exposure remain possible. It is not a guarantee of safe playback.
-3. **Manual timestamp notes:** enter seconds, `M:SS`, or `H:MM:SS` and a note, or use **Use player time**, then **Add timestamp note**. Notes can be removed. They do not change detections or automatic skipping. Save a report to preserve them; choosing another video or closing/reloading the page clears them. No analysis history is stored.
-4. **Find and filter:** use **Find timestamp** to select the flagged interval containing the entered time, or the next matching interval. Selection pauses playback and requires preview confirmation. Filter the list by brightness changes or red transitions; merged intervals retain both pattern labels where both were detected. These are detector labels, not diagnoses or detailed visual-pattern classifications. Clear filters to restore the full list. Filtering never alters skipping or export.
-5. **Next flagged section:** the button under the player selects the next chronological detection and shows its warning, without playing it. It ignores list filters and is disabled when no later interval exists. In automatic-skip mode it switches back to flagged-section preview so that playback still requires confirmation.
+Each flagged report section has two independent checkboxes:
 
-The application remains one offline HTML file. Download a new copy from GitHub to receive updates; copies already on your computer do not update automatically.
+- **Mark for review:** marks that detected interval for later review and reveals an optional note field, such as “Review this section”. It does not change playback.
+- **Skip during playback:** adds that detected interval to the marked-skip playback list. It does not mark it for review. No intervals are checked for skipping by default.
+
+You can use either choice or both. Click the section's preview button to inspect it behind the existing playback warning. Marking or entering a note does not start playback. Changing a skip checkbox pauses playback so you can finish adjusting the list.
+
+### Save the report
+
+Choose `.txt` or `.json` and press **Save report to computer**. Both downloads contain all detections, precise timestamps, pre-scene cues, analysis and playback settings, whether each section is marked for review, its optional review note, and whether it is marked for skipping. A marked-for-review section without a typed note is exported as “Review this section”. Unchecking review clears it from exported review notes; an unchecked note draft can remain in the field until the video is replaced.
+
+Exports include the local filename, not the video itself. Filters never omit detections or marks from the saved report. Save before choosing a new video or closing/reloading this page: no analysis history or permanent in-app storage is kept.
+
+### Play with marked skips
+
+Choose **Skip sections marked for skipping** or press **Play with marked skips**, then confirm playback. The full video plays, skipping only sections checked **Skip during playback**, even if a list filter hides them. **Unmarked flagged sections will play.** Playback starts at the beginning or after a marked leading interval. An 80 ms boundary margin and an opaque cover during seeking help handle boundaries. Playback stops if a marked interval extends through the end.
+
+Detection and browser seeking are imperfect and not frame-exact. This mode does not guarantee avoidance of flashing or safe playback. Preview mode still plays an individual flagged interval only after confirmation.
+
+### Find and navigate
+
+- **Find timestamp:** enter seconds, `M:SS`, or `H:MM:SS` to select the containing flagged interval or next matching interval. It pauses playback and requires preview confirmation.
+- **Detected pattern:** filter the list by brightness changes or red transitions, where detected. Merged detections retain both labels when available. Filters do not change marks, exports, or skip choices.
+- **Next flagged section:** the button beneath the player selects the next chronological detection and presents its warning, without autoplay. It ignores filters and is disabled after the last detection. It switches from marked-skip mode to flagged preview when used.
+
+There is no separate manual timestamp panel; review choices and notes belong to detected sections.
+
+The application remains one offline HTML file. Download a new copy from GitHub to receive updates; existing downloaded copies do not update automatically.

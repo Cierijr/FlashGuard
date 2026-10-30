@@ -95,8 +95,10 @@ class Launcher:
         tk.Label(body,text='Keep this window open while you use FlashGuard.',bg=BG,fg=TEXT,font=('Segoe UI',11,'bold')).pack(anchor='w',pady=(18,3))
         tk.Label(body,text='You can minimize it. Closing it disconnects the browser interface.',bg=BG,fg=MUTED).pack(anchor='w')
         actions=tk.Frame(body,bg=BG);actions.pack(fill='x',pady=(14,18))
-        self.button(actions,'Open FlashGuard in browser',open_browser,primary=True).pack(side='left')
+        self.button(actions,'Return to FlashGuard tab',open_browser,primary=True).pack(side='left')
         self.button(actions,'Minimize',root.iconify).pack(side='left',padx=10)
+        self.browser_hint=tk.Label(body,text=app.browser_message,bg=BG,fg=MUTED,wraplength=600,justify='left')
+        self.browser_hint.pack(anchor='w',pady=(0,10))
         game=tk.Frame(body,bg=CARD,padx=16,pady=14);game.pack(fill='x')
         row=tk.Frame(game,bg=CARD);row.pack(fill='x')
         tk.Label(row,text='A little break · Pong',bg=CARD,fg=TEXT,font=('Segoe UI',12,'bold')).pack(side='left')
@@ -170,6 +172,8 @@ class Launcher:
         self.root.after(33 if self.pong.playing else 250,self.tick)
 
     def refresh(self):
+        if hasattr(self,'browser_hint'):
+            self.browser_hint.configure(text=self.app.browser_message)
         state=self.app.analysis.snapshot()
         status=state.get('status','idle')
         title={'idle':'Ready when you are','analyzing':'Analyzing your video','complete':'Your report is ready','cancelled':'Analysis stopped','error':'Analysis needs attention'}.get(status,'FlashGuard is running')
@@ -191,3 +195,4 @@ class Launcher:
             self.pause('Analysis complete — your report is ready in the browser')
         self.last_status=status
         self.root.after(250,self.refresh)
+

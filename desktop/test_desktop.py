@@ -8,7 +8,7 @@ import time
 from types import SimpleNamespace
 import unittest
 from http.server import ThreadingHTTPServer
-from engine import Analysis, ffmpeg_path, spawn
+from engine import Analysis, ffmpeg_path, spawn, group_events
 from app import Handler, Desktop
 from launcher import Pong, Launcher
 from unittest.mock import Mock, patch
@@ -57,6 +57,36 @@ class DesktopTests(unittest.TestCase):
         job.cancel();thread.join(5)
         self.assertFalse(thread.is_alive());self.assertEqual(job.snapshot()['status'],'cancelled')
 
+    def test_merge_nearby_flashing_bursts(self):
+        def burst(start,kind='brightness'):
+            return [dict(t=start+i*.1,kind=kind,direction=1 if i%2 else -1) for i in range(8)]
+        result=group_events(burst(1)+burst(5,'red'),20)
+        self.assertEqual(len(result),1,'brief gaps in the same flashing sequence are grouped')
+        self.assertEqual(result[0]['patterns'],['brightness','red'])
+        self.assertLessEqual(result[0]['start'],1)
+        self.assertGreaterEqual(result[0]['end'],5.7)
+        self.assertEqual(len(group_events(burst(1)+burst(10),20)),2,'distant sequences remain separate')
+        self.assertEqual(group_events([dict(t=1,kind='brightness',direction=1)],20),[])
+
+    def test_browser_button_reuses_existing_tab(self):
+        app=Desktop(SimpleNamespace(quit=Mock()))
+        app.address='http://127.0.0.1:12345/test/'
+        def wait():
+            limit=time.monotonic()+2
+            while app.browser_lock.locked() and time.monotonic()<limit:
+                time.sleep(.005)
+            self.assertFalse(app.browser_lock.locked())
+        with patch('app.focus_existing',return_value=True) as focus, patch('app.webbrowser.open') as opened:
+            app.open_browser();wait();focus.assert_called_once();opened.assert_not_called()
+        app.browser_seen=time.monotonic()
+        with patch('app.focus_existing',return_value=False), patch('app.webbrowser.open') as opened:
+            app.open_browser();wait();opened.assert_not_called()
+            self.assertIn('no duplicate',app.browser_message)
+        app.browser_seen=0;app.last_browser_launch=0
+        with patch('app.focus_existing',return_value=False), patch('app.webbrowser.open') as opened:
+            app.open_browser();wait();opened.assert_called_once_with(app.address)
+            app.open_browser();wait();opened.assert_called_once()
+
     def test_pong_pause_collisions_and_scoring(self):
         game=Pong();game.step(.03);self.assertEqual((game.x,game.y),(300,95))
         game.playing=True;game.x=31;game.y=game.paddle;game.vx=-150
@@ -98,7 +128,7 @@ class DesktopTests(unittest.TestCase):
 
     def test_loopback_api_and_range(self):
         server=ThreadingHTTPServer(('127.0.0.1',0),Handler)
-        server.app=SimpleNamespace(token='test-token',filename=self.path,analysis=Analysis())
+        server.app=SimpleNamespace(token='test-token',browser_marker='FG-test',filename=self.path,analysis=Analysis())
         thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
         connection=http.client.HTTPConnection('127.0.0.1',server.server_port)
         try:
@@ -119,3 +149,4 @@ class DesktopTests(unittest.TestCase):
 
 if __name__=='__main__':
     unittest.main()
+

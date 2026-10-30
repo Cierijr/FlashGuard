@@ -1,10 +1,12 @@
-# FlashGuard
+# START HERE — Download the Faster FlashGuard for Windows
 
 ## [⬇ Download FlashGuard for Windows](https://github.com/Cierijr/FlashGuard/releases/download/desktop-preview-3/FlashGuard-Windows-x64.zip)
 
 **Download → Extract All → Open FlashGuard.exe**
 
 Open the extracted **FlashGuard** folder and keep all its files together. Keep the launcher open while using the browser window it opens. Python and FFmpeg are included—no separate installation required. This is a Windows 64-bit preview.
+
+For a short download guide in the file list, open **[START_HERE_FASTER_WINDOWS_DOWNLOAD.md](START_HERE_FASTER_WINDOWS_DOWNLOAD.md)**.
 
 ## Windows desktop preview for faster long-video analysis
 
@@ -61,7 +63,7 @@ Edit `index.html` with a text editor and reload the browser. There are no depend
 ## October 14 enhancements
 
 1. **Repeated-flash detection:** tracks the direction of brightness and red changes to reject isolated or one-direction changes. The standing-up example still needs to be retested; no measured accuracy improvement is claimed.
-2. **Event grouping:** merges overlapping intervals and intervals with gaps of up to one second into one warning.
+2. **Event grouping:** merges overlapping intervals and intervals with gaps of up to three seconds into one warning.
 3. **Preview controls:** brightness slider (10–100%, initially 50%) and playback speed (0.5×, 0.75×, 1×). These controls do not eliminate seizure risk.
 4. **Processing and results feedback:** percentage, elapsed-time heartbeat, frame count, cancellation, completed report summary, and sampling limitation notice.
 5. **Separate views:** home/analysis and report/preview views within the same offline HTML file. No account or page download is needed between views.
@@ -108,3 +110,10 @@ The application remains one offline HTML file. Download a new copy from GitHub t
 Videos with at least 600 samples (approximately one minute) use two independent browser video decoders on contiguous ranges. A shared boundary sample preserves transitions across the range split. Shorter videos use one decoder. Sampling remains approximately every 0.1 seconds for the entire video; no sample cap has been restored. Settings exported with reports include the worker count and processing strategy.
 
 Progress displays completed/total samples, frames processed per second, and an estimated remaining time after the first 20 samples. The final scene-description stage has its own status. Estimates vary with video resolution, codec/keyframe structure, browser, and computer load. Parallel decoding uses additional resources and is not guaranteed to be faster on every machine. No fixed real-world speedup has been measured. Cancellation and local-only processing remain available.
+
+
+## Updated grouping and browser return
+
+Candidate intervals separated by no more than three seconds are grouped into one continuous warning. The merged warning includes the gap and preserves all detected pattern labels; sequences farther apart remain separate. Detection thresholds and sample spacing are unchanged. This helps reduce fragmented warnings, but individual videos still need review.
+
+The desktop **Return to FlashGuard tab** button uses a unique session title to find and select the existing report tab in supported Windows browsers. It does not reload the report. A connection heartbeat prevents duplicate tabs if automatic tab selection fails. Windows/browser accessibility restrictions can still prevent activation; the launcher then asks you to select the existing tab manually.

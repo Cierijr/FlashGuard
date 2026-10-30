@@ -8,12 +8,14 @@ import re
 import secrets
 import sys
 import threading
+import time
 import tkinter as tk
 from tkinter import filedialog, messagebox
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import webbrowser
 from engine import Analysis, ffmpeg_path
 from launcher import Launcher
+from browser_focus import focus_existing
 
 ASSETS = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parents[1]))
 
@@ -26,6 +28,30 @@ class Desktop:
         self.thread = None
         self.token = secrets.token_urlsafe(32)
         self.server = None
+        self.browser_marker = 'FG-'+secrets.token_hex(6)
+        self.browser_seen = 0.0
+        self.last_browser_launch = 0.0
+        self.browser_lock = threading.Lock()
+        self.browser_message = 'Use this button to return to your report tab.'
+        self.address = None
+
+    def open_browser(self):
+        if not self.browser_lock.acquire(blocking=False):
+            return
+        self.browser_message = 'Finding your FlashGuard tab…'
+        def navigate():
+            try:
+                if focus_existing(self.browser_marker):
+                    self.browser_message = 'Returned to your existing FlashGuard tab.'
+                elif max(self.browser_seen,self.last_browser_launch)>0 and time.monotonic()-max(self.browser_seen,self.last_browser_launch)<120:
+                    self.browser_message = 'Your tab is open. Select FlashGuard in your browser; no duplicate was opened.'
+                else:
+                    webbrowser.open(self.address)
+                    self.last_browser_launch = time.monotonic()
+                    self.browser_message = 'FlashGuard opened in your browser.'
+            finally:
+                self.browser_lock.release()
+        threading.Thread(target=navigate,daemon=True).start()
 
     def choose(self):
         if self.thread and self.thread.is_alive():
@@ -101,7 +127,7 @@ class Handler(BaseHTTPRequestHandler):
         if route == '':
             html = (ASSETS/'index.html').read_text(encoding='utf-8')
             bridge = (ASSETS/'desktop'/'bridge.js').read_text(encoding='utf-8')
-            html = html.replace('</body>', '<script>'+bridge+'</script></body>')
+            html = html.replace('</body>', '<script>window.FLASHGUARD_WINDOW_MARKER='+json.dumps(app.browser_marker)+';</script><script>'+bridge+'</script></body>')
             return self.reply(html.encode(),kind='text/html; charset=utf-8')
         if route == 'api/status':
             return self.reply(app.analysis.snapshot())
@@ -114,6 +140,13 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply({'error':'Not found'},404)
         route = self.path.split('/',2)[2]
         app = self.server.app
+        if route == 'api/disconnect':
+            app.browser_seen = 0.0
+            app.last_browser_launch = 0.0
+            return self.reply({'connected':False})
+        if route == 'api/presence':
+            app.browser_seen = time.monotonic()
+            return self.reply({'connected':True})
         if route == 'api/select':
             return self.reply(app.choose())
         if route == 'api/cancel':
@@ -164,6 +197,7 @@ def main():
         root.update()
         launcher.toggle(); launcher.pong.step(.03); launcher.draw()
         launcher.pause(); root.update(); root.destroy()
+        assert Path(__file__).with_name('focus_browser.ps1').exists()
         assert (ASSETS/'index.html').exists() and (ASSETS/'desktop'/'bridge.js').exists()
         return
     root = tk.Tk()
@@ -173,11 +207,12 @@ def main():
     server.app = app
     app.server = server
     address = f'http://127.0.0.1:{server.server_port}/{app.token}/'
-    launcher = Launcher(root,app,lambda:webbrowser.open(address))
+    app.address = address
+    launcher = Launcher(root,app,app.open_browser)
     root.protocol('WM_DELETE_WINDOW',app.request_close)
     threading.Thread(target=server.serve_forever,daemon=True).start()
     root.after(100,app.dialogs)
-    root.after(500,lambda:webbrowser.open(address))
+    root.after(500,app.open_browser)
     try:
         root.mainloop()
     finally:
@@ -188,3 +223,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

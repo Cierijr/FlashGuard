@@ -11,3 +11,11 @@ async function pollDesktop(){try{const response=await fetch('api/status');if(!re
 $('choose').onclick=chooseDesktop;
 load=chooseDesktop;
 $('cancel').onclick=async()=>{try{await desktopRequest('api/cancel');message('Stopping analysis…')}catch(error){message(error.message)}};
+
+
+// Stable per-launcher title lets Windows select this tab without reloading the report.
+document.title='FlashGuard ['+(window.FLASHGUARD_WINDOW_MARKER||'Desktop')+']';
+function desktopPresence(){fetch('api/presence',{method:'POST'}).catch(()=>{});}
+desktopPresence();setInterval(desktopPresence,10000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)desktopPresence()});
+window.addEventListener('pagehide',()=>navigator.sendBeacon('api/disconnect'));

@@ -30,3 +30,9 @@ Closing during analysis asks whether you want to stop and exit.
 Optional Pong: click Play Pong, use the mouse or arrow keys, and press Space to pause.
 It starts paused and automatically pauses when you leave the game, minimize the launcher,
 or analysis finishes. No sound or flashing effects are used.
+
+
+RETURN TO YOUR REPORT
+Use Return to FlashGuard tab to select the existing browser tab. If automatic switching
+is unavailable, select the existing FlashGuard tab yourself; the launcher avoids duplicating
+a recently connected tab. Nearby detected intervals are grouped across gaps of up to 3 seconds.

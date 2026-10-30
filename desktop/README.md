@@ -37,3 +37,10 @@ Tests on the development Linux environment decode an actual generated 12-minute 
 The desktop window shows the chosen filename, current analysis progress, and estimated remaining time. Keep it open while using the browser; the Minimize button keeps analysis running. Closing during an active analysis asks for confirmation before stopping the decoder.
 
 Optional Pong starts paused and uses muted colors with no sound or flashing effects. Click Play Pong, then move the mouse over the court or use Up/Down; Space pauses. It pauses when the game loses focus, the window is minimized, or the report finishes. The game runs at up to 30 updates/sec only while active, and the decoder remains on its separate worker thread. The window scrolls on smaller screens. Moving visuals are optional and do not establish safety for any viewer.
+
+
+## Grouping and returning to the report tab
+
+Nearby detected intervals now merge across gaps of up to three seconds, including gaps between brightness and red-pattern detections. The preview includes the intervening gap. The threshold and sampling density are unchanged. More distant sequences remain separate.
+
+The launcher now has **Return to FlashGuard tab**. On Windows it uses built-in UI Automation and a unique tab title to select the existing session tab in Edge/Chrome/Firefox, restoring its browser window without navigating or replacing the report. A connection heartbeat avoids opening a duplicate when the existing tab is connected but Windows cannot switch to it. New tabs open only when no existing session is found or recently connected. Browser focus restrictions/accessibility settings can still require manually selecting the existing tab. No browser debugging port or extension is required. The focus helper PowerShell script is bundled with the application.

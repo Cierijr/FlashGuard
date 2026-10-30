@@ -18,6 +18,7 @@ elements.brightness.value='30';elements.brightness.oninput();assert.equal(elemen
 evaluate('showResults()');assert(elements.homeView.classList.contains('hidden'));evaluate('showHome()');assert(elements.resultsView.classList.contains('hidden'));assert.equal(elements.player.paused,true);
 assert(!/<script[^>]+src=|<link[^>]+href=/.test(html));console.log('PASS: DOM integrity; movement/monotonic rejection; brightness/red repetitions; nearby/separate grouping; click pause/resume/replay; endpoint stop; dimming/speed; home/results navigation; embedded assets.');
 
+context.fragmented=[...events([1,1.1,1.2,1.3,1.4,1.5]),...events([5,5.1,5.2,5.3,5.4,5.5],'red')];assert.equal(evaluate('groupFlashEvents(fragmented,20).length'),1);assert.equal(evaluate('groupFlashEvents(fragmented,20)[0].patterns.length'),2);
 // Section review/skip marking and exports.
 assert.equal(evaluate("parseTimestamp('1:23.5')"),83.5);
 evaluate("segments=[{start:1,end:2,kind:'Rapid light changes',patterns:['brightness'],cue:'Dark frame'},{start:4,end:5,kind:'Rapid red / light changes',patterns:['red'],cue:'Red frame'}];reportData={complete:true,createdAt:'test',video:{name:'test.mp4',durationSeconds:10},settings:{maxSamples:3600,actualSampleSpacingSeconds:.1}};notes=[];selected=null;playMode='preview';player.currentTime=0;render(10);updateNextButton()");
@@ -117,4 +118,5 @@ assert(!html.includes('id="noteTime"'));assert(!html.includes('Manual review not
   console.log('PASS: 12-minute actual analysis loop, dense sampling, parallel seeks, partition-boundary flashes, identical serial/parallel results, constant input, exports, and cancellation.');
   console.log('PASS: reset, invalid file, valid-video loading, file-change handler, no preview autoplay, and cancellation.');
 })().catch(e=>{console.error(e);process.exitCode=1});
+
 

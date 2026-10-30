@@ -13,6 +13,7 @@ import numpy as np
 
 FPS = 10
 WIDTH, HEIGHT = 32, 18
+MERGE_GAP_SECONDS = 3.0
 
 def ffmpeg_path():
     configured = os.environ.get('IMAGEIO_FFMPEG_EXE')
@@ -46,7 +47,7 @@ def group_events(events, duration):
             kind = first['kind']
             item = dict(start=max(0, first['t']-.5), end=min(duration, end+.6), patterns=[kind],
                         kind='Rapid red / light changes' if kind == 'red' else 'Rapid light changes')
-            if flagged and item['start'] <= flagged[-1]['end']+1:
+            if flagged and item['start'] <= flagged[-1]['end']+MERGE_GAP_SECONDS+1e-8:
                 prev = flagged[-1]
                 prev['end'] = max(prev['end'], item['end'])
                 prev['patterns'] = sorted(set(prev['patterns']+item['patterns']))
@@ -193,7 +194,8 @@ class Analysis:
             settings=dict(sampleTargetSeconds=.1,actualSampleSpacingSeconds=.1,maxSamples=None,
                 sampleWidth=32,sampleHeight=18,brightnessDeltaThreshold=.1,changedAreaFractionThreshold=.25,
                 minimumAlternatingTransitions=6,windowSeconds=1,intervalPaddingBeforeSeconds=.5,
-                intervalPaddingAfterSeconds=.6,mergeGapSeconds=1,processingStrategy='sequential FFmpeg decoding',
+                intervalPaddingAfterSeconds=.6,mergeGapSeconds=MERGE_GAP_SECONDS,processingStrategy='sequential FFmpeg decoding',
                 analyzedSamples=count,elapsedSeconds=time.monotonic()-started,
                 resamplingNote='FFmpeg selects/resamples decoded frames at 10 fps; exact timestamps and scaling may differ from browser seeks.'),
             complete=True,segments=segments)
+

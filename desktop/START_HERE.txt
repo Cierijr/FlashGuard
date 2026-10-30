@@ -23,3 +23,10 @@ Formats that FFmpeg analyzes may still be unsupported for preview in your browse
 This is a prototype. Sampled analysis can miss flashing and produce false alarms.
 It does not certify safe viewing. Independent-computer and interactive Windows testing
 are still required. This package is for Windows x64; it is not a Mac/Linux package.
+
+DESKTOP WINDOW
+The launcher now displays live analysis progress. You may minimize it while analysis continues.
+Closing during analysis asks whether you want to stop and exit.
+Optional Pong: click Play Pong, use the mouse or arrow keys, and press Space to pause.
+It starts paused and automatically pauses when you leave the game, minimize the launcher,
+or analysis finishes. No sound or flashing effects are used.

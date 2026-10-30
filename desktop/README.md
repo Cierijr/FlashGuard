@@ -31,3 +31,9 @@ Run from source with `python desktop/app.py` after installing dependencies. A sy
 ## Validation so far
 
 Tests on the development Linux environment decode an actual generated 12-minute video with 7,200 samples and confirm detections near the beginning, middle, and end. They check invalid video handling, cancellation, local API access restrictions, video byte-range requests, and interface delivery. That tiny 32x18 fixture took approximately four seconds to analyze on the development machine; this is not a benchmark for full-resolution user videos. Browser regression tests still pass. Interactive Windows file selection/playback, full-resolution performance, and an independent-computer test remain required. The automated Windows build must succeed before the packaged download is available.
+
+## Launcher with progress and optional Pong
+
+The desktop window shows the chosen filename, current analysis progress, and estimated remaining time. Keep it open while using the browser; the Minimize button keeps analysis running. Closing during an active analysis asks for confirmation before stopping the decoder.
+
+Optional Pong starts paused and uses muted colors with no sound or flashing effects. Click Play Pong, then move the mouse over the court or use Up/Down; Space pauses. It pauses when the game loses focus, the window is minimized, or the report finishes. The game runs at up to 30 updates/sec only while active, and the decoder remains on its separate worker thread. The window scrolls on smaller screens. Moving visuals are optional and do not establish safety for any viewer.

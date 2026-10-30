@@ -13,6 +13,7 @@ from tkinter import filedialog, messagebox
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import webbrowser
 from engine import Analysis, ffmpeg_path
+from launcher import Launcher
 
 ASSETS = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parents[1]))
 
@@ -55,6 +56,13 @@ class Desktop:
         except queue.Empty:
             pass
         self.root.after(100,self.dialogs)
+
+    def request_close(self):
+        active = self.thread is not None and self.thread.is_alive()
+        if active and not messagebox.askyesno('Stop analysis and exit?',
+            'A video is still being analyzed. Closing FlashGuard stops the analysis.\n\nExit anyway? You can minimize this window instead.', parent=self.root):
+            return
+        self.stop()
 
     def stop(self):
         self.analysis.cancel()
@@ -149,19 +157,24 @@ def main():
         import subprocess
         result = subprocess.run([ffmpeg_path(),'-version'],capture_output=True,check=True)
         assert b'ffmpeg version' in result.stdout
+        # Also exercise the packaged native launcher; no browser or video plays.
+        root = tk.Tk()
+        app = Desktop(root)
+        launcher = Launcher(root,app,lambda:None)
+        root.update()
+        launcher.toggle(); launcher.pong.step(.03); launcher.draw()
+        launcher.pause(); root.update(); root.destroy()
         assert (ASSETS/'index.html').exists() and (ASSETS/'desktop'/'bridge.js').exists()
         return
     root = tk.Tk()
     root.title('FlashGuard Desktop')
-    root.geometry('400x180')
     app = Desktop(root)
     server = ThreadingHTTPServer(('127.0.0.1',0),Handler)
     server.app = app
     app.server = server
     address = f'http://127.0.0.1:{server.server_port}/{app.token}/'
-    tk.Label(root,text='FlashGuard is running on your computer.\nUse the browser window to analyze videos.\nClose this launcher to stop FlashGuard.',pady=18).pack()
-    tk.Button(root,text='Open FlashGuard',command=lambda:webbrowser.open(address)).pack()
-    root.protocol('WM_DELETE_WINDOW',app.stop)
+    launcher = Launcher(root,app,lambda:webbrowser.open(address))
+    root.protocol('WM_DELETE_WINDOW',app.request_close)
     threading.Thread(target=server.serve_forever,daemon=True).start()
     root.after(100,app.dialogs)
     root.after(500,lambda:webbrowser.open(address))

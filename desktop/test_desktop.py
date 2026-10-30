@@ -9,7 +9,9 @@ from types import SimpleNamespace
 import unittest
 from http.server import ThreadingHTTPServer
 from engine import Analysis, ffmpeg_path, spawn
-from app import Handler
+from app import Handler, Desktop
+from launcher import Pong, Launcher
+from unittest.mock import Mock, patch
 
 class DesktopTests(unittest.TestCase):
     @classmethod
@@ -54,6 +56,45 @@ class DesktopTests(unittest.TestCase):
             time.sleep(.005)
         job.cancel();thread.join(5)
         self.assertFalse(thread.is_alive());self.assertEqual(job.snapshot()['status'],'cancelled')
+
+    def test_pong_pause_collisions_and_scoring(self):
+        game=Pong();game.step(.03);self.assertEqual((game.x,game.y),(300,95))
+        game.playing=True;game.x=31;game.y=game.paddle;game.vx=-150
+        game.step(.02);self.assertGreater(game.vx,0)
+        game.y=7;game.vy=-70;game.step(.02);self.assertGreater(game.vy,0)
+        game.x=-1;game.y=10;game.vx=-150;game.step(.02)
+        self.assertEqual(game.opponent_score,1);self.assertEqual(game.x,300)
+        game.move(-100);self.assertEqual(game.paddle,24)
+        game.move(1000);self.assertEqual(game.paddle,166)
+        game.x=300;game.vx=150;game.step(10);self.assertLessEqual(game.x,307.5)
+        game.playing=False;before=(game.x,game.y);game.step(.03)
+        self.assertEqual((game.x,game.y),before)
+
+    def test_close_confirmation_during_analysis(self):
+        app=Desktop(SimpleNamespace(quit=Mock()))
+        app.thread=SimpleNamespace(is_alive=lambda:True)
+        app.stop=Mock()
+        with patch('app.messagebox.askyesno',return_value=False):
+            app.request_close();app.stop.assert_not_called()
+        with patch('app.messagebox.askyesno',return_value=True):
+            app.request_close();app.stop.assert_called_once()
+        app.stop.reset_mock();app.thread=None
+        with patch('app.messagebox.askyesno') as question:
+            app.request_close();question.assert_not_called();app.stop.assert_called_once()
+
+    def test_launcher_live_progress_and_completion(self):
+        view=Launcher.__new__(Launcher)
+        view.root=SimpleNamespace(after=Mock())
+        view.status=Mock();view.filename=Mock();view.detail=Mock();view.progress={}
+        view.last_status=None;view.pause=Mock()
+        state={'status':'analyzing','progress':42,'frames':420,'remainingSeconds':15}
+        view.app=SimpleNamespace(filename=Path('sample.mp4'),analysis=SimpleNamespace(snapshot=lambda:state))
+        view.refresh();self.assertEqual(view.progress['value'],42)
+        self.assertIn('420 frames',view.detail.configure.call_args.kwargs['text'])
+        state.update(status='complete',progress=100)
+        view.refresh();view.pause.assert_called_once()
+        self.assertIn('browser',view.detail.configure.call_args.kwargs['text'])
+        view.refresh();view.pause.assert_called_once()
 
     def test_loopback_api_and_range(self):
         server=ThreadingHTTPServer(('127.0.0.1',0),Handler)

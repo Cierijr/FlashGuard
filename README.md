@@ -1,6 +1,6 @@
 # FlashGuard
 
-## [⬇ Download FlashGuard for Windows](https://github.com/Cierijr/FlashGuard/releases/download/desktop-preview-1/FlashGuard-Windows-x64.zip)
+## [⬇ Download FlashGuard for Windows](https://github.com/Cierijr/FlashGuard/releases/download/desktop-preview-3/FlashGuard-Windows-x64.zip)
 
 **Download → Extract All → Open FlashGuard.exe**
 

@@ -23,3 +23,9 @@ These checks use mocked DOM/media and simulated frames. Real browser decoding, d
 Removed the 3,600-sample cap that widened sample spacing after six minutes. All durations now retain approximately 0.1-second sample spacing. Exported settings include planned sample count and a null maximum sample cap. Event grouping scans only each event's following one-second window instead of copying and searching the entire remaining event list.
 
 `node test.cjs` includes the real analysis loop on a simulated 12-minute timeline: 7,200 samples; flashes near seconds 5 and 700 both detected; complete timeline coverage; exported sampling settings; long constant input with no detections; cancellation during long analysis. Existing navigation, playback, export, and loading regression checks also pass. These are simulated decoded frames, not real-browser video decoding. The user's long video and independent-computer/browser tests remain outstanding. Fixed sampling does not guarantee flash detection or safe playback.
+
+## October 30: parallel analysis and clearer progress
+
+Changed long-video analysis from serial seeks to two parallel contiguous sample ranges, including one overlapping sample to preserve the boundary transition. Short videos retain a single decoder. Additional media sources are released on completion, error, or cancellation after pending media operations settle. UI updates are throttled to approximately 100 ms while showing frame counts, throughput, and an estimated remaining time; report-description progress is shown separately.
+
+`node test.cjs` verifies overlapping mocked seeks, early/late and partition-boundary flashes on a 12-minute simulated timeline, identical serial/parallel detections, dense sample coverage, constant input, cancellation, and existing regression tests. No browser-decoding benchmark or real-world speedup measurement has been performed. Retest the user's long video to measure actual elapsed time and confirm detections.

@@ -20,7 +20,7 @@ If your browser prevents local-file video access, install Python 3 and run `pyth
 
 - Real frame sampling and analysis; reports are not prewritten demonstration results.
 - One video at a time; multiple files can be analyzed sequentially. Batch processing is not implemented.
-- No 30-second limit. At most 3,600 frames are sampled. Videos up to six minutes are sampled at approximately 10 frames per second; longer videos use wider sampling intervals and can miss brief events.
+- No 30-second limit. The entire video is sampled at approximately 10 frames per second (one sample every 0.1 seconds), with no 3,600-sample cap. Longer videos retain the same sampling density and take longer to process. Progress and cancellation remain available. Sampling can still miss events, including flashes between samples.
 - Each sampled frame is reduced to 32 × 18 pixels. The heuristic counts large brightness/red transitions and groups repeated transitions into intervals. It now requires at least six alternating transitions of the same type within one second (approximately three complete cycles) before creating a candidate interval. This is a heuristic, not a standards-based flash measurement. Requiring repetition reduces isolated-motion false alarms but can also miss real events.
 - This is not a validated WCAG compliance test or a medical safety assessment. False alarms and missed events are possible. No detections does not mean safe to watch.
 - Pre-scene cues describe estimated brightness and color from one frame. They do not identify people, objects, or actions.
@@ -88,3 +88,4 @@ Selection shows the existing warning and does not autoplay. A marked section can
 There is no separate manual timestamp panel; review choices and notes belong to detected sections.
 
 The application remains one offline HTML file. Download a new copy from GitHub to receive updates; existing downloaded copies do not update automatically.
+

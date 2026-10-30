@@ -89,3 +89,9 @@ There is no separate manual timestamp panel; review choices and notes belong to 
 
 The application remains one offline HTML file. Download a new copy from GitHub to receive updates; existing downloaded copies do not update automatically.
 
+
+### Processing speed and progress (October 30 update)
+
+Videos with at least 600 samples (approximately one minute) use two independent browser video decoders on contiguous ranges. A shared boundary sample preserves transitions across the range split. Shorter videos use one decoder. Sampling remains approximately every 0.1 seconds for the entire video; no sample cap has been restored. Settings exported with reports include the worker count and processing strategy.
+
+Progress displays completed/total samples, frames processed per second, and an estimated remaining time after the first 20 samples. The final scene-description stage has its own status. Estimates vary with video resolution, codec/keyframe structure, browser, and computer load. Parallel decoding uses additional resources and is not guaranteed to be faster on every machine. No fixed real-world speedup has been measured. Cancellation and local-only processing remain available.

@@ -1,5 +1,6 @@
 // Desktop-only bridge; the repository's browser-only index.html remains usable.
 let desktopPoll=null,desktopChoosing=false;
+if($('desktopDownload'))$('desktopDownload').classList.add('hidden');
 $('choose').textContent='Choose video (desktop analysis)';
 $('drop').querySelector('strong').textContent='Choose a video from your computer';
 $('drop').querySelector('small').textContent='Continuous local decoding · videos stay on this computer';

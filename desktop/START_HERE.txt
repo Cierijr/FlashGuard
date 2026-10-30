@@ -1,0 +1,25 @@
+FlashGuard Windows desktop preview (64-bit Windows)
+
+1. Download FlashGuard-Windows-x64.zip from the repository's Releases page.
+2. Right-click the ZIP and choose Extract All. Keep every extracted file together.
+3. Open the extracted FlashGuard folder and double-click FlashGuard.exe.
+4. Keep the small FlashGuard launcher window open. The interface opens in your browser.
+5. Click Choose video, choose a local video, and wait for analysis to complete.
+6. Review the report. Playback is limited to individual flagged sections and requires confirmation.
+7. Save TXT or JSON reports as needed. Close the launcher when finished.
+
+No Python, FFmpeg, administrator access, ChatGPT account, API key, or internet connection
+is required after downloading the packaged ZIP. A supported browser must already be installed.
+Windows may display an unsigned-app warning; this preview has no code-signing certificate.
+Only run a download you trust. Do not remove files from the _internal folder.
+
+The green "Code / Download ZIP" source download is NOT the packaged application.
+Use the Releases download named FlashGuard-Windows-x64.zip.
+
+Video stays on your computer; the interface communicates only with a local loopback service.
+Closing the browser tab does not stop the launcher. Close the launcher to stop it.
+Formats that FFmpeg analyzes may still be unsupported for preview in your browser.
+
+This is a prototype. Sampled analysis can miss flashing and produce false alarms.
+It does not certify safe viewing. Independent-computer and interactive Windows testing
+are still required. This package is for Windows x64; it is not a Mac/Linux package.

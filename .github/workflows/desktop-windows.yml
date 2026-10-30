@@ -1,0 +1,56 @@
+name: Build Windows desktop preview
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'desktop/**'
+      - 'index.html'
+      - '.github/workflows/desktop-windows.yml'
+permissions:
+  contents: write
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          architecture: 'x64'
+      - name: Install build dependencies
+        run: python -m pip install -r desktop/requirements-build.txt
+      - name: Test decoder, local API, cancellation, and real video
+        run: python -m unittest discover -s desktop -p test_desktop.py -v
+      - name: Package Python, FFmpeg, and interface
+        run: >-
+          python -m PyInstaller --noconfirm --clean --onedir --windowed
+          --name FlashGuard --collect-all imageio_ffmpeg
+          --add-data "index.html;." --add-data "desktop/bridge.js;desktop"
+          desktop/app.py
+      - name: Check packaged assets and bundled decoder
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath dist/FlashGuard/FlashGuard.exe -ArgumentList '--self-test' -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw 'Packaged self-test failed' }
+      - name: Include instructions and third-party notices
+        shell: pwsh
+        run: |
+          Copy-Item desktop/START_HERE.txt dist/FlashGuard/START_HERE.txt
+          Copy-Item desktop/THIRD_PARTY_NOTICES.md dist/FlashGuard/THIRD_PARTY_NOTICES.md
+          python desktop/copy_notices.py
+          Compress-Archive -Path dist/FlashGuard -DestinationPath FlashGuard-Windows-x64.zip
+          Get-FileHash FlashGuard-Windows-x64.zip -Algorithm SHA256 | Format-List | Out-File FlashGuard-Windows-x64-SHA256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FlashGuard-Windows-x64
+          path: |
+            FlashGuard-Windows-x64.zip
+            FlashGuard-Windows-x64-SHA256.txt
+      - name: Publish preview download
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = 'desktop-preview-${{ github.run_number }}'
+          gh release create $tag FlashGuard-Windows-x64.zip FlashGuard-Windows-x64-SHA256.txt --target '${{ github.sha }}' --prerelease --title 'FlashGuard Windows desktop preview' --notes 'Windows 64-bit preview. Download FlashGuard-Windows-x64.zip, extract the entire folder, and run FlashGuard.exe. Python and FFmpeg are bundled. Keep the launcher open while using the browser interface. Automated decoder, API, packaging, and real-video tests passed; interactive Windows and independent-computer validation still required. Sampled analysis does not establish safety.'

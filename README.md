@@ -1,5 +1,12 @@
 # FlashGuard
 
+## Windows desktop preview for faster long-video analysis
+
+The new desktop version uses continuous local FFmpeg decoding instead of repeated browser seeks. It keeps approximately 10 samples/sec and the existing detection rules. The Windows package bundles Python and FFmpeg; users extract the entire folder and launch **FlashGuard.exe**, then use the familiar browser interface.
+
+Get **FlashGuard-Windows-x64.zip** from [Releases](https://github.com/Cierijr/FlashGuard/releases) after the Windows build succeeds. **Code > Download ZIP is source code, not the packaged application.** See [desktop setup, validation, and limitations](desktop/README.md). Windows interactive and independent-computer testing remain outstanding. The browser-only option below remains available.
+
+
 IST440W video accessibility prototype — Julianna Cieri.
 
 FlashGuard analyzes a video file on your computer, marks possible rapid brightness or red transitions, and displays timestamps and simple visual cues from before each flagged interval. Selecting an interval opens a warning; playback requires an explicit click. Playback is limited to individual flagged intervals. Next-section navigation skips marked intervals and wraps around.

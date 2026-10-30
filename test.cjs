@@ -80,11 +80,12 @@ assert(!html.includes('id="noteTime"'));assert(!html.includes('Manual review not
   // Exercise actual sampling, frame-transition detection, grouping, and exports on a long timeline.
   context.setTimeout=(fn)=>{queueMicrotask(fn);return 0};
   let sampleTime=0,sampledTimes=[];
-  context.recordSeek=t=>{sampleTime=t;sampledTimes.push(t)};
-  evaluate('seek=async t=>recordSeek(t)');
+  let activeSeeks=0,maxActiveSeeks=0;context.recordSeek=async(t,media)=>{media.currentTime=t;sampledTimes.push(t);activeSeeks++;maxActiveSeeks=Math.max(maxActiveSeeks,activeSeeks);await new Promise(resolve=>setImmediate(resolve));activeSeeks--};
+  evaluate('seek=async (t,media=analyzer)=>recordSeek(t,media)');
+  evaluate('ctx.drawImage=media=>{globalThis.drawnMedia=media}');
   elements.canvas.getContext=()=>{};
   const pixels=new Uint8Array(576*4);
-  context.syntheticFrame=()=>{const flashing=(sampleTime>=5&&sampleTime<6)||(sampleTime>=700&&sampleTime<701);const value=flashing&&Math.round(sampleTime*10)%2?255:0;pixels.fill(value);return {data:pixels}};
+  context.syntheticFrame=()=>{sampleTime=context.drawnMedia.currentTime;const flashing=(sampleTime>=5&&sampleTime<6)||(sampleTime>=700&&sampleTime<701)||(sampleTime>=359.5&&sampleTime<360.5);const value=flashing&&Math.round(sampleTime*10)%2?255:0;pixels.fill(value);return {data:pixels}};
   evaluate('ctx.getImageData=()=>syntheticFrame()');
   elements.analyzer.duration=720;
   await evaluate("load({name:'long-flashes.mp4',type:'video/mp4',size:100})");
@@ -95,10 +96,17 @@ assert(!html.includes('id="noteTime"'));assert(!html.includes('Manual review not
   const detected=JSON.parse(evaluate('JSON.stringify(segments)'));
   assert(detected.some(s=>s.start<=5&&s.end>=5.8),'early flashing detected');
   assert(detected.some(s=>s.start<=700&&s.end>=700.8),'late flashing detected beyond former cap');
-  assert.equal(sampledTimes.slice(0,7200).length,7200);
-  assert(sampledTimes[7199]>719.8,'entire video sampled');
-  for(let i=1;i<7200;i++)assert(sampledTimes[i]-sampledTimes[i-1]<=.100001,'no long-video sampling gaps');
+  assert.equal(evaluate('reportData.settings.analysisWorkers'),2);assert.equal(maxActiveSeeks,2,'two independent decoders overlap seeks');
+  assert(detected.some(s=>s.start<=359.5&&s.end>=360.3),'flashes spanning partition boundary detected');
+  const uniqueSamples=[...new Set(sampledTimes)].sort((a,b)=>a-b);
+  assert(uniqueSamples.at(-1)>719.8,'entire video sampled');
+  for(let i=1;i<uniqueSamples.length;i++)assert(uniqueSamples[i]-uniqueSamples[i-1]<=.100001,'no long-video sampling gaps');
+  const parallelResult=JSON.stringify(detected);
+  evaluate('analyze='+evaluate('analyze.toString()').replace('workerCount=samples>=600?2:1','workerCount=1'));
+  await evaluate("load({name:'serial-comparison.mp4',type:'video/mp4',size:100})");
+  assert.equal(evaluate('JSON.stringify(segments)'),parallelResult,'parallel and serial detection results match exactly');
   assert.equal(evaluate('exportReport().settings.actualSampleSpacingSeconds'),.1);
+  evaluate('analyze='+js.match(/async function analyze[\s\S]*?(?=async function describeApproaches)/)[0]);
   // Long constant input should remain clear, and cancellation must still interrupt a long job.
   evaluate('ctx.getImageData=()=>({data:new Uint8Array(576*4)})');
   await evaluate("load({name:'long-constant.mp4',type:'video/mp4',size:100})");
@@ -106,7 +114,7 @@ assert(!html.includes('id="noteTime"'));assert(!html.includes('Manual review not
   let interrupted=false;context.recordSeek=()=>{if(!interrupted){interrupted=true;elements.cancel.onclick()}};
   await evaluate("load({name:'long-cancel.mp4',type:'video/mp4',size:100})");
   assert.equal(evaluate('reportData'),null);assert.equal(evaluate('busy'),false);
-  console.log('PASS: 12-minute actual analysis loop, 7200 dense samples, early/late flashes, constant input, exported spacing, and mid-analysis cancellation.');
+  console.log('PASS: 12-minute actual analysis loop, dense sampling, parallel seeks, partition-boundary flashes, identical serial/parallel results, constant input, exports, and cancellation.');
   console.log('PASS: reset, invalid file, valid-video loading, file-change handler, no preview autoplay, and cancellation.');
 })().catch(e=>{console.error(e);process.exitCode=1});
 

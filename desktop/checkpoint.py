@@ -73,8 +73,9 @@ class SessionStore:
 
     def acquire(self):
         self.lockfile=(self.directory/'instance.lock').open('a+b')
-        self.lockfile.seek(0)
-        if not self.lockfile.read(1):
+        # Windows denies reading a byte another instance has locked.
+        # Inspect file size without reading the locked range.
+        if os.fstat(self.lockfile.fileno()).st_size==0:
             self.lockfile.write(b'0');self.lockfile.flush()
         self.lockfile.seek(0)
         try:

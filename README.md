@@ -1,6 +1,6 @@
 # START HERE — Download the Faster FlashGuard for Windows
 
-## [⬇ Download FlashGuard for Windows](https://github.com/Cierijr/FlashGuard/releases/download/desktop-preview-4/FlashGuard-Windows-x64.zip)
+## [⬇ Download FlashGuard for Windows](https://github.com/Cierijr/FlashGuard/releases/download/desktop-preview-6/FlashGuard-Windows-x64.zip)
 
 **Download → Extract All → Open FlashGuard.exe**
 

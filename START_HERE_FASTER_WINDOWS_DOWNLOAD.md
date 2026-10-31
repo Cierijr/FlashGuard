@@ -12,3 +12,6 @@
 Python and FFmpeg are already included. Keep the EXE and its accompanying files together. Use this Windows ZIP for fast desktop analysis; opening `index.html` uses the slower browser-only version.
 
 The launcher has a **Return to FlashGuard tab** button. On Windows it tries to select your existing report tab instead of opening a duplicate. Browser accessibility or Windows focus restrictions can prevent switching; select the existing FlashGuard tab manually if prompted. Videos remain on your computer. This unsigned Windows 64-bit preview may show a Microsoft publisher warning. Sampled analysis can miss flashing and does not establish safe playback.
+
+
+The compact launcher starts minimized; only the FlashGuard browser tab opens on screen. Its taskbar window has a single Return to FlashGuard tab button. If you close it during analysis, save progress and reopen the EXE to resume. Keep the original video unchanged and in the same location. A brief decoder catch-up may be needed. This recovery feature applies only to analyses started with this version.

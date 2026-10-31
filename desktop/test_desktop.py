@@ -2,6 +2,7 @@ import http.client
 import json
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -10,7 +11,8 @@ import unittest
 from http.server import ThreadingHTTPServer
 from engine import Analysis, ffmpeg_path, spawn, group_events
 from app import Handler, Desktop
-from launcher import Pong, Launcher
+from launcher import Launcher
+from checkpoint import SessionStore, fingerprint
 from unittest.mock import Mock, patch
 
 class DesktopTests(unittest.TestCase):
@@ -87,19 +89,6 @@ class DesktopTests(unittest.TestCase):
             app.open_browser();wait();opened.assert_called_once_with(app.address)
             app.open_browser();wait();opened.assert_called_once()
 
-    def test_pong_pause_collisions_and_scoring(self):
-        game=Pong();game.step(.03);self.assertEqual((game.x,game.y),(300,95))
-        game.playing=True;game.x=31;game.y=game.paddle;game.vx=-150
-        game.step(.02);self.assertGreater(game.vx,0)
-        game.y=7;game.vy=-70;game.step(.02);self.assertGreater(game.vy,0)
-        game.x=-1;game.y=10;game.vx=-150;game.step(.02)
-        self.assertEqual(game.opponent_score,1);self.assertEqual(game.x,300)
-        game.move(-100);self.assertEqual(game.paddle,24)
-        game.move(1000);self.assertEqual(game.paddle,166)
-        game.x=300;game.vx=150;game.step(10);self.assertLessEqual(game.x,307.5)
-        game.playing=False;before=(game.x,game.y);game.step(.03)
-        self.assertEqual((game.x,game.y),before)
-
     def test_close_confirmation_during_analysis(self):
         app=Desktop(SimpleNamespace(quit=Mock()))
         app.thread=SimpleNamespace(is_alive=lambda:True)
@@ -112,19 +101,87 @@ class DesktopTests(unittest.TestCase):
         with patch('app.messagebox.askyesno') as question:
             app.request_close();question.assert_not_called();app.stop.assert_called_once()
 
-    def test_launcher_live_progress_and_completion(self):
-        view=Launcher.__new__(Launcher)
-        view.root=SimpleNamespace(after=Mock())
-        view.status=Mock();view.filename=Mock();view.detail=Mock();view.progress={}
-        view.last_status=None;view.pause=Mock()
-        state={'status':'analyzing','progress':42,'frames':420,'remainingSeconds':15}
-        view.app=SimpleNamespace(filename=Path('sample.mp4'),analysis=SimpleNamespace(snapshot=lambda:state))
-        view.refresh();self.assertEqual(view.progress['value'],42)
-        self.assertIn('420 frames',view.detail.configure.call_args.kwargs['text'])
-        state.update(status='complete',progress=100)
-        view.refresh();view.pause.assert_called_once()
-        self.assertIn('browser',view.detail.configure.call_args.kwargs['text'])
-        view.refresh();view.pause.assert_called_once()
+    def test_saved_analysis_resumes_without_gaps_or_duplicate_samples(self):
+        with tempfile.TemporaryDirectory() as folder:
+            store=SessionStore(folder)
+            zero=Analysis(store=store);zero.pause();zero.run(self.path)
+            self.assertEqual(store.load()['count'],0,'closing during metadata must still preserve the selected video')
+            store.clear()
+            interrupted=Analysis(store=store)
+            update=interrupted.update
+            def pause_after_progress(**values):
+                update(**values)
+                if values.get('frames',0)>=100 and not interrupted.cancel_event.is_set():
+                    interrupted.pause()
+            interrupted.update=pause_after_progress
+            interrupted.run(self.path)
+            self.assertEqual(interrupted.snapshot()['status'],'paused',interrupted.snapshot())
+            saved=SessionStore(folder).load()
+            self.assertIsNotNone(saved)
+            self.assertGreater(saved['count'],0)
+            resumed=Analysis(store=store,resume=saved);resumed.run(self.path)
+            state=resumed.snapshot()
+            self.assertEqual(state['status'],'complete',state)
+            full=Analysis();full.run(self.path)
+            self.assertEqual(state['result']['segments'],full.snapshot()['result']['segments'])
+            self.assertEqual(state['result']['settings']['analyzedSamples'],7200)
+            self.assertEqual(state['result']['settings']['resumedSamples'],saved['count'])
+            app=Desktop(SimpleNamespace(quit=Mock()),store=SessionStore(folder))
+            app.restore_session()
+            self.assertEqual(app.analysis.snapshot()['status'],'complete')
+            self.assertIsNone(app.thread,'completed sessions restore without restarting analysis')
+
+    def test_forced_process_exit_recovers_last_atomic_checkpoint(self):
+        with tempfile.TemporaryDirectory() as folder:
+            code="""import sys,time
+from checkpoint import SessionStore
+from engine import Analysis
+class SaveThenWait(SessionStore):
+    def save(self,data):
+        super().save(data)
+        if data['status']=='partial' and data['count']>0:
+            time.sleep(30)
+Analysis(store=SaveThenWait(sys.argv[2]),checkpoint_seconds=.05).run(sys.argv[1])
+"""
+            process=spawn([sys.executable,'-c',code,str(self.path),folder],cwd=Path(__file__).parent,
+                stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+            store=SessionStore(folder)
+            try:
+                limit=time.monotonic()+15
+                saved=None
+                while process.poll() is None and time.monotonic()<limit:
+                    saved=store.load()
+                    if saved and saved.get('count',0)>0:
+                        break
+                    time.sleep(.02)
+                self.assertIsNotNone(saved,'child must persist a checkpoint before termination')
+                self.assertGreater(saved.get('count',0),0)
+            finally:
+                if process.poll() is None:
+                    process.kill()
+                process.wait(timeout=5)
+            saved=store.load();self.assertIsNotNone(saved)
+            resumed=Analysis(store=store,resume=saved);resumed.run(self.path)
+            state=resumed.snapshot();self.assertEqual(state['status'],'complete',state)
+            self.assertEqual(state['result']['settings']['analyzedSamples'],7200)
+            for t in (5.5,360,700.5):
+                self.assertTrue(any(s['start']<=t<=s['end'] for s in state['result']['segments']))
+
+    def test_checkpoint_validation_cancel_and_single_instance(self):
+        with tempfile.TemporaryDirectory() as folder:
+            store=SessionStore(folder)
+            store.path.write_bytes(b'not a saved checkpoint')
+            self.assertIsNone(store.load());self.assertIsNotNone(store.warning)
+            identity=fingerprint(self.path)
+            store.save(dict(schema=1,status='partial',identity={**identity,'size':identity['size']+1}))
+            self.assertIsNone(store.load(),'changed video identity must not resume')
+            store.save(dict(schema=1,status='partial',identity=identity,count=1))
+            job=Analysis(store=store);job.cancel();job.run(self.path)
+            self.assertFalse(store.path.exists(),'explicit cancellation discards saved progress')
+            self.assertTrue(store.acquire())
+            second=SessionStore(folder)
+            self.assertFalse(second.acquire(),'only one launcher may write the shared session')
+            store.release();self.assertTrue(second.acquire());second.release()
 
     def test_loopback_api_and_range(self):
         server=ThreadingHTTPServer(('127.0.0.1',0),Handler)
@@ -149,4 +206,5 @@ class DesktopTests(unittest.TestCase):
 
 if __name__=='__main__':
     unittest.main()
+
 

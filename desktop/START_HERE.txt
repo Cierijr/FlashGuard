@@ -3,7 +3,7 @@ FlashGuard Windows desktop preview (64-bit Windows)
 1. Download FlashGuard-Windows-x64.zip from the repository's Releases page.
 2. Right-click the ZIP and choose Extract All. Keep every extracted file together.
 3. Open the extracted FlashGuard folder and double-click FlashGuard.exe.
-4. Keep the small FlashGuard launcher window open. The interface opens in your browser.
+4. The launcher starts minimized. Use the FlashGuard tab that opens in your browser.
 5. Click Choose video, choose a local video, and wait for analysis to complete.
 6. Review the report. Playback is limited to individual flagged sections and requires confirmation.
 7. Save TXT or JSON reports as needed. Close the launcher when finished.
@@ -24,15 +24,19 @@ This is a prototype. Sampled analysis can miss flashing and produce false alarms
 It does not certify safe viewing. Independent-computer and interactive Windows testing
 are still required. This package is for Windows x64; it is not a Mac/Linux package.
 
-DESKTOP WINDOW
-The launcher now displays live analysis progress. You may minimize it while analysis continues.
-Closing during analysis asks whether you want to stop and exit.
-Optional Pong: click Play Pong, use the mouse or arrow keys, and press Space to pause.
-It starts paused and automatically pauses when you leave the game, minimize the launcher,
-or analysis finishes. No sound or flashing effects are used.
+COMPACT DESKTOP WINDOW
+The launcher starts minimized. The FlashGuard browser tab opens normally.
+Analysis progress stays in the browser. Pong and the desktop progress bar are removed.
+Restore FlashGuard from the taskbar to use Return to FlashGuard tab.
 
-
-RETURN TO YOUR REPORT
-Use Return to FlashGuard tab to select the existing browser tab. If automatic switching
-is unavailable, select the existing FlashGuard tab yourself; the launcher avoids duplicating
-a recently connected tab. Nearby detected intervals are grouped across gaps of up to 3 seconds.
+RESUME AFTER CLOSING
+If you close the launcher during analysis, choose Save progress and exit.
+Reopen FlashGuard.exe and the analysis continues automatically in the browser.
+Keep the original video in the same location and do not change it.
+Processing pauses while FlashGuard is closed. On reopening, the decoder may need time
+to catch up to the saved position before the progress percentage advances again.
+Checkpoints are local to this user/computer and contain no full-video copy.
+A forced shutdown resumes from the last successful checkpoint, not necessarily the last frame.
+Cancel analysis discards the checkpoint. Starting another video replaces the saved session.
+Review notes and skip marks edited in the browser should be saved using report download.
+Old versions did not save checkpoints; only analyses started with this build can be resumed.

@@ -22,6 +22,8 @@ jobs:
         run: python -m pip install -r desktop/requirements-build.txt
       - name: Test decoder, local API, cancellation, and real video
         run: python -m unittest discover -s desktop -p test_desktop.py -v
+      - name: Test restored browser connection
+        run: node desktop/test_bridge.cjs
       - name: Validate browser tab helper
         shell: pwsh
         run: |
@@ -61,4 +63,5 @@ jobs:
         run: |
           $tag = 'desktop-preview-${{ github.run_number }}'
           gh release create $tag FlashGuard-Windows-x64.zip FlashGuard-Windows-x64-SHA256.txt --target '${{ github.sha }}' --prerelease --title 'FlashGuard Windows desktop preview' --notes 'Windows 64-bit preview. Download FlashGuard-Windows-x64.zip, extract the entire folder, and run FlashGuard.exe. Python and FFmpeg are bundled. Keep the launcher open while using the browser interface. Automated decoder, API, packaging, and real-video tests passed; interactive Windows and independent-computer validation still required. Sampled analysis does not establish safety.'
+
 

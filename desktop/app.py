@@ -13,6 +13,9 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import webbrowser
+from checkpoint import SessionStore
+from urllib.request import Request, urlopen
+from urllib.parse import urlsplit
 from engine import Analysis, ffmpeg_path
 from launcher import Launcher
 from browser_focus import focus_existing
@@ -20,10 +23,12 @@ from browser_focus import focus_existing
 ASSETS = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parents[1]))
 
 class Desktop:
-    def __init__(self, root):
+    def __init__(self, root, store=None):
         self.root = root
         self.requests = queue.Queue()
-        self.analysis = Analysis()
+        self.notifications = queue.Queue()
+        self.store=store or SessionStore()
+        self.analysis = Analysis(store=self.store)
         self.filename = None
         self.thread = None
         self.token = secrets.token_urlsafe(32)
@@ -45,6 +50,7 @@ class Desktop:
                     self.browser_message = 'Returned to your existing FlashGuard tab.'
                 elif max(self.browser_seen,self.last_browser_launch)>0 and time.monotonic()-max(self.browser_seen,self.last_browser_launch)<120:
                     self.browser_message = 'Your tab is open. Select FlashGuard in your browser; no duplicate was opened.'
+                    self.notifications.put(self.browser_message)
                 else:
                     webbrowser.open(self.address)
                     self.last_browser_launch = time.monotonic()
@@ -52,6 +58,20 @@ class Desktop:
             finally:
                 self.browser_lock.release()
         threading.Thread(target=navigate,daemon=True).start()
+
+    def restore_session(self):
+        saved=self.store.load()
+        if not saved:
+            if self.store.warning:
+                self.analysis.update(status='error',message=self.store.warning)
+            return
+        self.filename=Path(saved['identity']['path'])
+        if saved['status']=='complete':
+            self.analysis.update(status='complete',progress=100,result=saved['result'])
+        else:
+            self.analysis=Analysis(store=self.store,resume=saved)
+            self.thread=threading.Thread(target=self.analysis.run,args=(self.filename,),daemon=True)
+            self.thread.start()
 
     def choose(self):
         if self.thread and self.thread.is_alive():
@@ -62,7 +82,8 @@ class Desktop:
         if not filename:
             return {'cancelled':True}
         self.filename = Path(filename)
-        self.analysis = Analysis()
+        self.store.clear()
+        self.analysis = Analysis(store=self.store)
         self.thread = threading.Thread(target=self.analysis.run,args=(filename,),daemon=True)
         self.thread.start()
         return {'selected':True,'name':self.filename.name}
@@ -70,7 +91,11 @@ class Desktop:
     def dialogs(self):
         try:
             result = self.requests.get_nowait()
+            was_minimized=False
             try:
+                was_minimized=self.root.state()=='iconic'
+                if was_minimized:
+                    self.root.deiconify()
                 self.root.attributes('-topmost', True)
                 path = filedialog.askopenfilename(parent=self.root,title='Choose a video for FlashGuard',
                     filetypes=[('Video files','*.mp4 *.webm *.mov *.mkv *.avi *.m4v'),('All files','*.*')])
@@ -79,19 +104,26 @@ class Desktop:
                 result.put('')
             finally:
                 self.root.attributes('-topmost',False)
+                if was_minimized:
+                    self.root.iconify()
+        except queue.Empty:
+            pass
+        try:
+            message=self.notifications.get_nowait()
+            messagebox.showinfo('Return to FlashGuard',message,parent=self.root)
         except queue.Empty:
             pass
         self.root.after(100,self.dialogs)
 
     def request_close(self):
         active = self.thread is not None and self.thread.is_alive()
-        if active and not messagebox.askyesno('Stop analysis and exit?',
-            'A video is still being analyzed. Closing FlashGuard stops the analysis.\n\nExit anyway? You can minimize this window instead.', parent=self.root):
+        if active and not messagebox.askyesno('Save progress and exit?',
+            'A video is still being analyzed. FlashGuard will save progress and pause. Reopen FlashGuard.exe to continue.\n\nSave and exit? You can minimize this window instead.', parent=self.root):
             return
         self.stop()
 
     def stop(self):
-        self.analysis.cancel()
+        self.analysis.pause()
         self.root.quit()
 
 class Handler(BaseHTTPRequestHandler):
@@ -130,7 +162,9 @@ class Handler(BaseHTTPRequestHandler):
             html = html.replace('</body>', '<script>window.FLASHGUARD_WINDOW_MARKER='+json.dumps(app.browser_marker)+';</script><script>'+bridge+'</script></body>')
             return self.reply(html.encode(),kind='text/html; charset=utf-8')
         if route == 'api/status':
-            return self.reply(app.analysis.snapshot())
+            state=app.analysis.snapshot()
+            state['videoName']=app.filename.name if app.filename else None
+            return self.reply(state)
         if route == 'video' and app.filename:
             return self.video(app.filename)
         self.reply({'error':'Not found'},404)
@@ -140,6 +174,9 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply({'error':'Not found'},404)
         route = self.path.split('/',2)[2]
         app = self.server.app
+        if route == 'api/return':
+            app.open_browser()
+            return self.reply({'ok':True})
         if route == 'api/disconnect':
             app.browser_seen = 0.0
             app.last_browser_launch = 0.0
@@ -192,35 +229,66 @@ def main():
         assert b'ffmpeg version' in result.stdout
         # Also exercise the packaged native launcher; no browser or video plays.
         root = tk.Tk()
+        root.withdraw()
         app = Desktop(root)
         launcher = Launcher(root,app,lambda:None)
         root.update()
-        launcher.toggle(); launcher.pong.step(.03); launcher.draw()
-        launcher.pause(); root.update(); root.destroy()
+        assert launcher.return_button.cget('text')=='Return to FlashGuard tab'
+        assert len(root.winfo_children())==1
+        root.iconify();root.update()
+        if os.name=='nt':
+            assert root.state()=='iconic'
+        root.destroy()
         assert Path(__file__).with_name('focus_browser.ps1').exists()
         assert (ASSETS/'index.html').exists() and (ASSETS/'desktop'/'bridge.js').exists()
         return
+    store=SessionStore()
+    if not store.acquire():
+        try:
+            info=json.loads(store.runtime.read_text(encoding='utf-8'))
+            address=urlsplit(info['address'])
+            if address.scheme!='http' or address.hostname!='127.0.0.1':
+                raise ValueError('Invalid local launcher address')
+            # Ask the already-running instance to select its report tab.
+            request=Request(info['address']+'api/return',method='POST')
+            with urlopen(request,timeout=3) as response:
+                response.read()
+        except Exception:
+            root=tk.Tk();root.withdraw()
+            messagebox.showinfo('FlashGuard is already running','Select the existing FlashGuard browser tab or launcher in your taskbar.',parent=root)
+            root.destroy()
+        return
     root = tk.Tk()
-    root.title('FlashGuard Desktop')
-    app = Desktop(root)
+    root.withdraw()
+    app = Desktop(root,store)
     server = ThreadingHTTPServer(('127.0.0.1',0),Handler)
     server.app = app
     app.server = server
-    address = f'http://127.0.0.1:{server.server_port}/{app.token}/'
-    app.address = address
+    app.address = f'http://127.0.0.1:{server.server_port}/{app.token}/'
+    store.runtime.write_text(json.dumps({'address':app.address}),encoding='utf-8')
+    if os.name!='nt':
+        store.runtime.chmod(0o600)
     launcher = Launcher(root,app,app.open_browser)
     root.protocol('WM_DELETE_WINDOW',app.request_close)
     threading.Thread(target=server.serve_forever,daemon=True).start()
+    app.restore_session()
+    root.iconify()
     root.after(100,app.dialogs)
     root.after(500,app.open_browser)
     try:
         root.mainloop()
     finally:
-        app.analysis.cancel()
+        app.analysis.pause()
+        if app.thread:
+            app.thread.join(10)
+        warning=app.analysis.snapshot().get('checkpointWarning')
+        if warning:
+            messagebox.showwarning('Saved progress needs attention',warning,parent=root)
         server.shutdown()
         server.server_close()
+        store.runtime.unlink(missing_ok=True)
+        store.release()
         root.destroy()
 
 if __name__ == '__main__':
     main()
-

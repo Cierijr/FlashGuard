@@ -117,3 +117,8 @@ Progress displays completed/total samples, frames processed per second, and an e
 Candidate intervals separated by no more than three seconds are grouped into one continuous warning. The merged warning includes the gap and preserves all detected pattern labels; sequences farther apart remain separate. Detection thresholds and sample spacing are unchanged. This helps reduce fragmented warnings, but individual videos still need review.
 
 The desktop **Return to FlashGuard tab** button uses a unique session title to find and select the existing report tab in supported Windows browsers. It does not reload the report. A connection heartbeat prevents duplicate tabs if automatic tab selection fails. Windows/browser accessibility restrictions can still prevent activation; the launcher then asks you to select the existing tab manually.
+
+
+## Compact desktop launcher and resumable analysis
+
+The launcher now starts minimized and contains only **Return to FlashGuard tab**. All progress remains in the browser; Pong has been removed. Closing during analysis offers to save progress. Reopen the EXE to resume automatically, with the original video still in the same location and unchanged. Recovery may briefly replay decoding to the saved position before progress advances. It never skips unanalyzed samples. A local checkpoint is saved periodically and during normal exit; no full-video copy is saved. Cancel discards saved progress, and choosing a new video replaces it. See [recovery details](desktop/README.md#compact-launcher-and-recovery). Older builds cannot recover an analysis they did not save.

@@ -1,10 +1,18 @@
-# START HERE — Download the Faster FlashGuard for Windows
+# START HERE — Download FlashGuard Desktop
 
 ## [⬇ Download FlashGuard for Windows](https://github.com/Cierijr/FlashGuard/releases/download/desktop-preview-6/FlashGuard-Windows-x64.zip)
 
 **Download → Extract All → Open FlashGuard.exe**
 
 Open the extracted **FlashGuard** folder and keep all its files together. Keep the launcher open while using the browser window it opens. Python and FFmpeg are included—no separate installation required. This is a Windows 64-bit preview.
+
+## Download FlashGuard for macOS or Linux
+
+- [macOS — Apple Silicon](https://github.com/Cierijr/FlashGuard/releases/download/desktop-unix-preview-1-1/FlashGuard-macOS-arm64.tar.gz)
+- [macOS — Intel](https://github.com/Cierijr/FlashGuard/releases/download/desktop-unix-preview-1-1/FlashGuard-macOS-x64.tar.gz)
+- [Linux — 64-bit Intel or AMD](https://github.com/Cierijr/FlashGuard/releases/download/desktop-unix-preview-1-1/FlashGuard-Linux-x64.tar.gz)
+
+Extract your archive, open Terminal in the extracted FlashGuard folder, and run `./FlashGuard`. See the [macOS and Linux launch instructions](desktop/UNIX_DESKTOP.md).
 
 For a short download guide in the file list, open **[START_HERE_FASTER_WINDOWS_DOWNLOAD.md](START_HERE_FASTER_WINDOWS_DOWNLOAD.md)**.
 
@@ -18,13 +26,6 @@ Get **FlashGuard-Windows-x64.zip** from [Releases](https://github.com/Cierijr/Fl
 IST440W video accessibility prototype — Julianna Cieri.
 
 FlashGuard analyzes a video file on your computer, marks possible rapid brightness or red transitions, and displays timestamps and simple visual cues from before each flagged interval. Selecting an interval opens a warning; playback requires an explicit click. Playback is limited to individual flagged intervals. Next-section navigation skips marked intervals and wraps around.
-
-## macOS and Linux desktop builds
-
-Check [GitHub Releases](https://github.com/Cierijr/FlashGuard/releases) for the
-macOS Apple Silicon, macOS Intel, and Linux x86-64 desktop assets. See the
-[macOS and Linux instructions](desktop/UNIX_DESKTOP.md) for launch, compatibility,
-and running from source.
 
 ## Browser-only alternative (slower for long videos)
 

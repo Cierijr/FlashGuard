@@ -19,6 +19,13 @@ IST440W video accessibility prototype — Julianna Cieri.
 
 FlashGuard analyzes a video file on your computer, marks possible rapid brightness or red transitions, and displays timestamps and simple visual cues from before each flagged interval. Selecting an interval opens a warning; playback requires an explicit click. Playback is limited to individual flagged intervals. Next-section navigation skips marked intervals and wraps around.
 
+## macOS and Linux desktop builds
+
+Check [GitHub Releases](https://github.com/Cierijr/FlashGuard/releases) for the
+macOS Apple Silicon, macOS Intel, and Linux x86-64 desktop assets. See the
+[macOS and Linux instructions](desktop/UNIX_DESKTOP.md) for launch, compatibility,
+and running from source.
+
 ## Browser-only alternative (slower for long videos)
 
 1. Download this repository using **Code → Download ZIP**, then extract it.

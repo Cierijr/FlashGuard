@@ -235,11 +235,12 @@ def main():
         root.update()
         assert launcher.return_button.cget('text')=='Return to FlashGuard tab'
         assert len(root.winfo_children())==1
-        root.iconify();root.update()
         if os.name=='nt':
+            root.iconify();root.update()
             assert root.state()=='iconic'
         root.destroy()
-        assert Path(__file__).with_name('focus_browser.ps1').exists()
+        if os.name=='nt':
+            assert Path(__file__).with_name('focus_browser.ps1').exists()
         assert (ASSETS/'index.html').exists() and (ASSETS/'desktop'/'bridge.js').exists()
         return
     store=SessionStore()
@@ -272,7 +273,10 @@ def main():
     root.protocol('WM_DELETE_WINDOW',app.request_close)
     threading.Thread(target=server.serve_forever,daemon=True).start()
     app.restore_session()
-    root.iconify()
+    if os.name=='nt':
+        root.iconify()
+    else:
+        root.deiconify()
     root.after(100,app.dialogs)
     root.after(500,app.open_browser)
     try:

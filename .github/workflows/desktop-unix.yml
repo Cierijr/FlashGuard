@@ -1,0 +1,95 @@
+name: Build macOS and Linux desktop previews
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'desktop/**'
+      - 'index.html'
+      - '.github/workflows/desktop-unix.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            architecture: arm64
+            name: macOS-arm64
+          - runner: macos-15-intel
+            architecture: x64
+            name: macOS-x64
+          - runner: ubuntu-22.04
+            architecture: x64
+            name: Linux-x64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          architecture: ${{ matrix.architecture }}
+      - name: Install Linux GUI test dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb xauth tk
+      - name: Install build dependencies
+        run: python -m pip install -r desktop/requirements-build.txt
+      - name: Test desktop and browser bridge
+        run: |
+          python -m unittest discover -s desktop -p test_desktop.py -v
+          node desktop/test_bridge.cjs
+      - name: Package desktop application
+        run: >-
+          python -m PyInstaller --noconfirm --clean --onedir
+          --name FlashGuard --collect-all imageio_ffmpeg
+          --add-data 'index.html:.' --add-data 'desktop/bridge.js:desktop'
+          desktop/app.py
+      - name: Include usage instructions and notices
+        run: |
+          cp desktop/UNIX_DESKTOP.md desktop/THIRD_PARTY_NOTICES.md dist/FlashGuard/
+          python desktop/copy_notices.py
+      - name: Archive and test the extracted package
+        env:
+          PLATFORM: ${{ matrix.name }}
+        run: |
+          archive="FlashGuard-${PLATFORM}.tar.gz"
+          tar -czf "$archive" -C dist FlashGuard
+          extracted="$(mktemp -d)"
+          tar -xzf "$archive" -C "$extracted"
+          if [ "$RUNNER_OS" = Linux ]; then
+            xvfb-run -a "$extracted/FlashGuard/FlashGuard" --self-test
+          else
+            "$extracted/FlashGuard/FlashGuard" --self-test
+          fi
+          shasum -a 256 "$archive" > "$archive.sha256"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FlashGuard-${{ matrix.name }}
+          path: FlashGuard-${{ matrix.name }}.tar.gz*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: FlashGuard-*
+          merge-multiple: true
+      - name: Publish preview packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "desktop-unix-preview-${GITHUB_RUN_NUMBER}-${GITHUB_RUN_ATTEMPT}" \
+            FlashGuard-*.tar.gz FlashGuard-*.tar.gz.sha256 \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
+            --title "FlashGuard desktop preview for macOS and Linux" \
+            --notes "Extract the package for your platform and follow UNIX_DESKTOP.md. Automated tests passed on the build runners. Interactive user testing is pending."
